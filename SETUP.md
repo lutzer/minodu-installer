@@ -1,16 +1,25 @@
 # Setup RaspPi as router
 
-## Hardware
+## Setup AP
+
+### Hardware
 
 * WIFI Adapters: https://github.com/morrownr/USB-WiFi?tab=readme-ov-file
+* using TP Link AC600 Acrher T2U Plus
 
-## Installation
+### Install drivers
+
+* clone `https://github.com/RaspAP/raspap-tools.git`
+* `chmod 755 install_wlan_drivers.sh`
+* `./install_wlan_drivers.sh`
+
+### Installation
 
 * clone repo with `git clone https://github.com/RaspAP/raspap-webgui.git`
 * run `cd raspy-webgui`
 * run  `sudo bash installers/raspbian.sh --yes`
 
-## Adjust config
+### Adjust config
 
 * edit config files
 
@@ -27,13 +36,30 @@
   channel=1
   hw_mode=g
   ieee80211n=0
-  interface=wlan0
+  interface=wlan1
   wpa=none
   wpa_pairwise=CCMP
   country_code=DE
   ignore_broadcast_ssid=0
   ```
 
+* Change ` sudo nano /etc/dnsmasq.conf`to
+
+  ```
+  interface=wlan1
+  dhcp-range=10.20.1.5,10.20.1.100,255.255.255.0,24
+  domain=ap
+  address=/rpi.ap/10.20.1.1
+  ```
+  
+* `sudo nano /etc/dhcpcd.conf`, change:
+
+  ```
+  interface wlan1
+  ```
+  
+  
+  
 * change webinterface port
 
   * edit `/etc/lighttpd/lighttpd.conf`
@@ -45,14 +71,16 @@
 
 * change hostname with `hostnamectl set-hostname minodupi.local`
 
+* Make sure`sudo nano /etc/raspap/networking/defaults.json` shows the right default values for the used wlan1 adapter
+
 * reboot with `sudo reboot`
 
-## Router Config
+### Router Config
 
 * open webinterface with `http://minodupi.local:81/`
 * credentials: admin / secret
 
-# Setupo second Lighttp Instance
+## Setupo second Lighttp Instance
 
 * Create new lighttp conf `/etc/lighttpd/lighttpd-80.conf`
 
@@ -119,20 +147,20 @@
     sudo systemctl enable lighttpd-80.service
     ```
 
-# Setup captive portal
+## Setup captive portal
 
 * create file `sudo nano /etc/dnsmasq.d/captive.conf`
 
 	```
-  interface=wlan0
+  interface=wlan1
   address=/#/10.3.141.1
   ```
   
  * redirect all traffic to router with:
 
    ```
-   sudo iptables -t nat -A PREROUTING -i wlan0 -p udp --dport 53 -j DNAT --to 10.3.141.1
-   sudo iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 53 -j DNAT --to 10.3.141.1
+   sudo iptables -t nat -A PREROUTING -i wlan1 -p udp --dport 53 -j DNAT --to 10.3.141.1
+   sudo iptables -t nat -A PREROUTING -i wlan1 -p tcp --dport 53 -j DNAT --to 10.3.141.1
    ```
 * create file `/home/minodu/www/hotspot-detect.html`
 
@@ -207,7 +235,7 @@
 
   
 
-# Setup Docker
+## Setup Docker
 
 * install with 
 
@@ -230,3 +258,40 @@
   ```
 
 * autostart docker with `sudo systemctl enable docker`
+
+## Setup Backend
+
+* install backend
+
+* run backend on port 3001
+
+* change`/etc/lighttpd/lighttpd-80.conf`
+
+  ```
+  # add mod proxy
+  
+  server.modules = (
+      "mod_indexfile",
+      "mod_dirlisting",
+      "mod_staticfile",
+      "mod_redirect",
+      "mod_rewrite",
+      "mod_proxy"
+  )
+  
+  #add rewrite rule as first rule
+  
+  # Redirect requests to docker container
+  $HTTP["url"] =~ "^/measurements" {
+      proxy.server = (
+          "" => (
+              "measurement-backend" => (
+                  "host" => "127.0.0.1",
+                  "port" => 3001
+              )
+          )
+      )
+  }
+  ```
+
+  
