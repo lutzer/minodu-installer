@@ -11,7 +11,12 @@
 
 ## Install Gemma2 Model
 
-* install with `ollama run gemma2:2b`
+* install with `ollama run gemma2:2b` and test if it works
 
-## Setup Embeddings
 
+
+## Setup Chatbot Python Script
+
+* go into *chatbot* folder and run `python -m venv .venv`
+* then `source .venv/bin/activate`to activate it
+* `pip install -r requirements.txt`  to install dependencies
