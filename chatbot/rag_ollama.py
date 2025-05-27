@@ -109,11 +109,14 @@ class RAGWithOllama:
         except requests.exceptions.ConnectionError:
             return "Error: Cannot connect to Ollama. Please start it with 'ollama serve'"
         
+        print(f"calling ollama with prompt length: {len(prompt)}")
+        
         url = f"{self.ollama_url}/api/generate"
         data = {
             "model": self.model_name,
             "prompt": prompt,
-            "stream": stream
+            "stream": stream,
+            "keepalive": -1
         }
         
         try:
@@ -242,10 +245,13 @@ class RAGWithOllama:
                 prompt = f"""Context from documents:
 {context}
 
-Question: {question}
+Question: {question} 
 
-Please answer the question based on the provided context. If the context doesn't contain enough information, please say so.
-At the end of your answer, provide up to three relevant follow up questions the user might ask."""
+This is very important:
+Please answer the question based on the provided context. 
+If the context doesn't contain enough information, please say so. 
+If the question has nothing to do with the context, dont answer the question, just say you dont have any information about the subject
+At the end of your answer, provide up to three relevant follow up questions the user might ask about the provided context."""
             else:
                 prompt = f"No relevant context found. Question: {question}"
         else:
