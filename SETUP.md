@@ -1,4 +1,25 @@
-# Setup RaspPi as router
+# Setup RaspPi for Minodu
+
+## Setup Base System
+
+* install raspberry pi os lite 64 bit with raspberry pi imager from [https://www.raspberrypi.com/software/](https://www.raspberrypi.com/software/)
+  * set hostname to minodupi
+  * enable ssh
+
+* connect via ethernet cable to mac
+  * set manual dhcp address to 192.168.2.1
+  * enable internet sharing
+
+* pi should be avalaible via `ssh pi@œminodupi.local`
+
+* open `sudo raspi-config`, go to *Localisation Options* > *WLAN Country* > Togo
+
+## Install dependencies
+
+* `sudo apt update`
+* `sudo apt-get install git`
+* `sudo apt install dkms git build-essential bc`
+* `sudo apt install linux-headers-$(uname -r)`
 
 ## Setup AP
 
@@ -6,10 +27,15 @@
 
 * WIFI Adapters: https://github.com/morrownr/USB-WiFi?tab=readme-ov-file
 * using TP Link AC600 Acrher T2U Plus
+* plug it into usb1 port:
+  ```
+  [eth] [usb1] [usb2]
+  [   ] [usb3] [usb4]
+  ```
 
-### Install drivers
+### Install drivers (not necessary on newer raspbian versions)
 
-* clone `https://github.com/RaspAP/raspap-tools.git`
+* `git clone https://github.com/RaspAP/raspap-tools.git`
 * `chmod 755 install_wlan_drivers.sh`
 * `./install_wlan_drivers.sh`
 
@@ -18,12 +44,25 @@
 * clone repo with `git clone https://github.com/RaspAP/raspap-webgui.git`
 * run `cd raspy-webgui`
 * run  `sudo bash installers/raspbian.sh --yes`
+* change webinterface port:
+  * edit `/etc/lighttpd/lighttpd.conf`
+    ```
+    # change port to 81 by changing line: 
+    server.port                 = 81
+    ```
+  * sudo reboot
+
+### Router Config
+
+* open webinterface with `http://minodupi.local:81/`
+* standard credentials: admin / secret
+* change credentials
 
 ### Adjust config
 
 * edit config files
 
-  * open` sudo nano /etc/hostapd/hostapd.conf` and replace content with:
+  * open ` sudo nano /etc/hostapd/hostapd.conf` and replace content with:
 
   ```
   driver=nl80211
@@ -43,109 +82,30 @@
   ignore_broadcast_ssid=0
   ```
 
-* Change ` sudo nano /etc/dnsmasq.conf`to
+* Change `sudo nano /etc/dnsmasq.d/090_wlan1.conf`to
 
   ```
+  # RaspAP wlan1 configuration
   interface=wlan1
-  dhcp-range=10.20.1.5,10.20.1.100,255.255.255.0,24
-  domain=ap
-  address=/rpi.ap/10.20.1.1
+  dhcp-range=10.20.1.100,10.20.1.255,255.255.255.0,12h
   ```
   
 * `sudo nano /etc/dhcpcd.conf`, change:
 
   ```
+  # RaspAP wlan1 configuration
   interface wlan1
+  static ip_address=10.20.1.1/24
+  static routers=10.20.1.1
+  static domain_name_servers=1.1.1.1 8.8.8.8
   ```
-  
-  
-  
-* change webinterface port
-
-  * edit `/etc/lighttpd/lighttpd.conf`
-
-    ```
-    # change port to 81 by changing line: 
-    server.port                 = 81
-    ```
-
-* change hostname with `hostnamectl set-hostname minodupi.local`
-
-* Make sure`sudo nano /etc/raspap/networking/defaults.json` shows the right default values for the used wlan1 adapter
 
 * reboot with `sudo reboot`
 
-### Router Config
+* login into the webinterface via *minodupi.local:81*
 
-* open webinterface with `http://minodupi.local:81/`
-* credentials: admin / secret
-
-## Setupo second Lighttp Instance
-
-* Create new lighttp conf `/etc/lighttpd/lighttpd-80.conf`
-
-  ```
-  include_shell "/usr/share/lighttpd/create-mime.conf.pl"
-  
-  server.port                 = 80
-  server.document-root        = "/home/minodu/www"
-  server.username             = "www-data"
-  server.groupname            = "www-data"
-  server.errorlog             = "/var/log/lighttpd/error.log"
-  server.pid-file             = "/run/lighttpd.pid"
-  
-  server.modules = (
-      "mod_indexfile",
-      "mod_dirlisting",
-      "mod_staticfile",
-      "mod_redirect"
-  )
-  
-  index-file.names = ( "index.html" )
-  
-  # Allow directory listing if no index file is found
-  dir-listing.activate = "enable"
-  
-  # Redirect everything except index.html to captive portal domain
-  $HTTP["url"] !~ "^/(index\.html)?$" {
-      url.redirect = (
-          ".*" => "http://minodupi.local/"
-      )
-  }
-  ```
-  
-* change file permissions of www directory to 755 with `chmod -R 755 /home/minodu/www`
-
-* Create system d service:
-
-  * Create file `sudo nano /etc/systemd/system/lighttpd-80.service`
-
-    ```
-    [Unit]
-    Description=Lighttpd Daemon
-    After=network-online.target
-    
-    [Service]
-    Type=simple
-    PIDFile=/run/lighttpd.pid
-    ExecStartPre=/usr/sbin/lighttpd -tt -f /etc/lighttpd/lighttpd-80.conf
-    ExecStart=/usr/sbin/lighttpd -D -f /etc/lighttpd/lighttpd-80.conf
-    ExecReload=/bin/kill -USR1 $MAINPID
-    Restart=on-failure
-    
-    [Install]
-    WantedBy=multi-user.target
-    ```
-
-  * Create and start new service
-
-    ```
-    # run in shell
-    sudo systemctl daemon-reexec
-    sudo systemctl daemon-reload
-    sudo systemctl start lighttpd-80.service
-    sudo systemctl enable lighttpd-80.service
-    ```
+* check if wlan1 interface is startd with `iw dev`
+  * if wlan1 isnt starting run `sudo rfkill unblock all`
 
 ## Setup captive portal
 
@@ -153,15 +113,11 @@
 
 	```
   interface=wlan1
-  address=/#/10.3.141.1
+  address=/#/10.20.1.1
   ```
   
- * redirect all traffic to router with:
+ * redirect all traffic to router with `sudo iptables -t nat -A PREROUTING -i wlan1 -p udp --dport 53 -j DNAT --to 10.20.1.1 && sudo iptables -t nat -A PREROUTING -i wlan1 -p tcp --dport 53 -j DNAT --to 10.20.1.1`
 
-   ```
-   sudo iptables -t nat -A PREROUTING -i wlan1 -p udp --dport 53 -j DNAT --to 10.3.141.1
-   sudo iptables -t nat -A PREROUTING -i wlan1 -p tcp --dport 53 -j DNAT --to 10.3.141.1
-   ```
 * create file `/home/minodu/www/hotspot-detect.html`
 
   ```
@@ -171,7 +127,7 @@
     <title>Captive Portal</title>
     <script type="text/javascript">
           // Redirect to the index.html page (your captive portal)
-          window.location.href = "http://minodupi.local/index.html";
+          window.location.href = "http://minodupi.local";
     </script>
   </head>
   <body>
@@ -258,40 +214,3 @@
   ```
 
 * autostart docker with `sudo systemctl enable docker`
-
-## Setup Backend
-
-* install backend
-
-* run backend on port 3001
-
-* change`/etc/lighttpd/lighttpd-80.conf`
-
-  ```
-  # add mod proxy
-  
-  server.modules = (
-      "mod_indexfile",
-      "mod_dirlisting",
-      "mod_staticfile",
-      "mod_redirect",
-      "mod_rewrite",
-      "mod_proxy"
-  )
-  
-  #add rewrite rule as first rule
-  
-  # Redirect requests to docker container
-  $HTTP["url"] =~ "^/measurements" {
-      proxy.server = (
-          "" => (
-              "measurement-backend" => (
-                  "host" => "127.0.0.1",
-                  "port" => 3001
-              )
-          )
-      )
-  }
-  ```
-
-  
