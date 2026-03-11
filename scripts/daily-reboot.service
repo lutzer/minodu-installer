@@ -1,0 +1,6 @@
+[Unit]
+Description=Daily reboot of Raspberry Pi
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/reboot

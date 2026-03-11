@@ -78,7 +78,7 @@
   interface=wlan1
   wpa=none
   wpa_pairwise=CCMP
-  country_code=TG
+  country_code=DE
   ignore_broadcast_ssid=0
   ap_max_inactivity=600
   disassoc_low_ack=1
@@ -116,34 +116,13 @@
   usbcore.autosuspend=-1
   ```
 
-* copy watchdog with `sudo cp scripts/raspap-watchdog.sh /usr/local/bin/raspap-watchdog.sh`
-* `sudo chmod +x /usr/local/bin/raspap-watchdog.sh`
-* create systemd service: `sudo nano /etc/systemd/system/raspap-watchdog.service`
+* cp reboot service files with `sudo cp scripts/daily-* /etc/systemd/system/`
   ```
-  [Unit]
-  Description=RaspAP Watchdog
-
-  [Service]
-  Type=oneshot
-  ExecStart=/usr/local/bin/raspap-watchdog.sh
+* enable reboot timer:
   ```
-* create sytemd timer: `sudo nano /etc/systemd/system/raspap-watchdog.timer`
-  ```
-  [Unit]
-  Description=Run RaspAP Watchdog
-
-  [Timer]
-  OnBootSec=1min
-  OnUnitActiveSec=1min
-
-  [Install]
-  WantedBy=timers.target
-  ```
-* enable watchdog:
-  ```
-  sudo systemctl daemon-reload
-  sudo systemctl enable raspap-watchdog.timer
-  sudo systemctl start raspap-watchdog.timer
+ sudo systemctl daemon-reload
+  sudo systemctl enable daily-reboot.timer
+  sudo systemctl start daily-reboot.timer
   ```
 
 ## Setup captive portal
