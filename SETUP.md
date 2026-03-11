@@ -116,7 +116,7 @@
   usbcore.autosuspend=-1
   ```
 
-* copy watchdog with `sudo cp script/raspap-watchdog.sh /usr/local/bin/raspap-watchdog.sh``
+* copy watchdog with `sudo cp scripts/raspap-watchdog.sh /usr/local/bin/raspap-watchdog.sh`
 * `sudo chmod +x /usr/local/bin/raspap-watchdog.sh`
 * create systemd service: `sudo nano /etc/systemd/system/raspap-watchdog.service`
   ```
