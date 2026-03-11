@@ -78,8 +78,11 @@
   interface=wlan1
   wpa=none
   wpa_pairwise=CCMP
-  country_code=DE
+  country_code=TG
   ignore_broadcast_ssid=0
+  ap_max_inactivity=600
+  disassoc_low_ack=1
+  skip_inactivity_poll=1
   ```
 
 * Change `sudo nano /etc/dnsmasq.d/090_wlan1.conf`to
@@ -106,6 +109,42 @@
 
 * check if wlan1 interface is startd with `iw dev`
   * if wlan1 isnt starting run `sudo rfkill unblock all`
+
+* disable usb power maganement by adding at the end to `sudo nano /boot/cmdline.txt`
+  ```
+  #disable usb power suspsend
+  usbcore.autosuspend=-1
+  ```
+
+* copy watchdog with `sudo cp script/raspap-watchdog.sh /usr/local/bin/raspap-watchdog.sh``
+* `sudo chmod +x /usr/local/bin/raspap-watchdog.sh`
+* create systemd service: `sudo nano /etc/systemd/system/raspap-watchdog.service`
+  ```
+  [Unit]
+  Description=RaspAP Watchdog
+
+  [Service]
+  Type=oneshot
+  ExecStart=/usr/local/bin/raspap-watchdog.sh
+  ```
+* create sytemd timer: `sudo nano /etc/systemd/system/raspap-watchdog.timer`
+  ```
+  [Unit]
+  Description=Run RaspAP Watchdog
+
+  [Timer]
+  OnBootSec=1min
+  OnUnitActiveSec=1min
+
+  [Install]
+  WantedBy=timers.target
+  ```
+* enable watchdog:
+  ```
+  sudo systemctl daemon-reload
+  sudo systemctl enable raspap-watchdog.timer
+  sudo systemctl start raspap-watchdog.timer
+  ```
 
 ## Setup captive portal
 
@@ -135,82 +174,3 @@
   </body>
   </html>
   ```
-
-* change`/etc/lighttpd/lighttpd-80.conf`
-
-  ```sh
-  include_shell "/usr/share/lighttpd/create-mime.conf.pl"
-  
-  server.port                 = 80
-  server.document-root        = "/home/minodu/www"
-  server.username             = "www-data"
-  server.groupname            = "www-data"
-  server.errorlog             = "/var/log/lighttpd/error.log"
-  server.pid-file             = "/run/lighttpd.pid"
-  
-  server.modules = (
-      "mod_indexfile",
-      "mod_dirlisting",
-      "mod_staticfile",
-      "mod_redirect",
-      "mod_rewrite"
-  )
-  
-  index-file.names = ( "index.html" )
-  
-  # Allow directory listing if no index file is found
-  dir-listing.activate = "enable"
-  
-  # Redirect all unknown requests to /index.html (without causing loops)
-  $HTTP["url"] !~ "^/(index\.html|captive\.css|logo\.png)?$" {
-      url.rewrite-if-not-file = ( ".*" => "/index.html" )
-  }
-  
-  # Captive portal probe handling
-  
-  # Apple devices (macOS, iOS) - serve the Success page to captive.apple.com
-  $HTTP["host"] == "captive.apple.com" {
-      url.rewrite-once = ( ".*" => "/hotspot-detect.html" )
-  }
-  
-  # Android devices (connectivitycheck.gstatic.com, clients3.google.com)
-  $HTTP["host"] =~ "^(connectivitycheck\.gstatic\.com|clients3\.google\.com)$" {
-      url.rewrite-once = ( ".*" => "/index.html" )
-  }
-  
-  # Windows devices (www.msftconnecttest.com)
-  $HTTP["host"] == "www.msftconnecttest.com" {
-      url.rewrite-once = ( ".*" => "/index.html" )
-  }
-  
-  # Android specific path - generate_204
-  $HTTP["url"] =~ "^/generate_204$" {
-      url.rewrite-once = ( ".*" => "/index.html" )
-  }
-  ```
-
-  
-
-## Setup Docker
-
-* install with 
-
-  ```
-  sudo apt update
-  sudo apt upgrade
-  curl -sSL https://get.docker.com | sh
-  ```
-
-* add current user to docker group with
-
-  ```
-  sudo usermod -aG docker $USER
-  ```
-
-* `logout`and check if everything works correcly with
-
-  ```
-  docker run hello-world
-  ```
-
-* autostart docker with `sudo systemctl enable docker`
