@@ -118,12 +118,8 @@
 
 * cp reboot service files with `sudo cp scripts/daily-* /etc/systemd/system/`
   ```
-* enable reboot timer:
-  ```
- sudo systemctl daemon-reload
-  sudo systemctl enable daily-reboot.timer
-  sudo systemctl start daily-reboot.timer
-  ```
+* enable reboot timer
+ `sudo systemctl daemon-reload && sudo systemctl enable daily-reboot.timer &&sudo systemctl start daily-reboot.timer`
 
 ## Setup captive portal
 
