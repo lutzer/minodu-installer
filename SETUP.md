@@ -38,6 +38,25 @@
 * `git clone https://github.com/RaspAP/raspap-tools.git`
 * `chmod 755 install_wlan_drivers.sh`
 * `./install_wlan_drivers.sh`
+* to check if evertyhing is installed correctly:
+  ```
+  # Check if WLAN interface exists
+  ip link show
+
+  # Or specifically look for wireless interfaces
+  iwconfig
+
+  # Check loaded drivers/modules
+  lsmod | grep -i 8188  # for Realtek (common USB adapters)
+  lsmod | grep -i brcm  # for Broadcom (built-in Pi WiFi)
+
+  # Check dmesg for driver errors
+  dmesg | grep -i wlan
+  dmesg | grep -i firmware
+
+  # Check if firmware loaded successfully
+  sudo rfkill list
+  ```
 
 ### Installation
 
@@ -62,7 +81,7 @@
 
 * edit config files
 
-  * open ` sudo nano /etc/hostapd/hostapd.conf` and replace content with:
+  * open `sudo nano /etc/hostapd/hostapd.conf` and replace content with:
 
   ```
   driver=nl80211
@@ -74,7 +93,7 @@
   ssid=Minodu
   channel=1
   hw_mode=g
-  ieee80211n=0
+  ieee80211n=1
   interface=wlan1
   wpa=none
   wpa_pairwise=CCMP
@@ -83,6 +102,7 @@
   ap_max_inactivity=600
   disassoc_low_ack=1
   skip_inactivity_poll=1
+  wmm_enabled=1
   ```
 
 * Change `sudo nano /etc/dnsmasq.d/090_wlan1.conf`to
@@ -110,7 +130,7 @@
 * check if wlan1 interface is startd with `iw dev`
   * if wlan1 isnt starting run `sudo rfkill unblock all`
 
-* disable usb power maganement by adding at the end to `sudo nano /boot/cmdline.txt`
+* disable usb power maganement by adding at the end to `sudo nano /boot/firmware/cmdline.txt`
   ```
   #disable usb power suspsend
   usbcore.autosuspend=-1
@@ -119,7 +139,7 @@
 * cp reboot service files with `sudo cp scripts/daily-* /etc/systemd/system/`
   ```
 * enable reboot timer
- `sudo systemctl daemon-reload && sudo systemctl enable daily-reboot.timer &&sudo systemctl start daily-reboot.timer`
+ `sudo systemctl daemon-reload && sudo systemctl enable daily-reboot.timer && sudo systemctl start daily-reboot.timer`
 
 ## Setup captive portal
 
@@ -149,3 +169,8 @@
   </body>
   </html>
   ```
+
+## Setup Weather Station
+
+* connect weatherstation to wifi
+* set post url to `http://minodupi.local/api/backend/v1/weather`
