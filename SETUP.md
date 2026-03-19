@@ -135,6 +135,10 @@
   #disable usb power suspsend
   usbcore.autosuspend=-1
   ```
+* disable wlan power managment with `sudo nano /etc/udev/rules.d/70-rtl88x2bu-pm.rules`
+  ```
+  ACTION=="add", SUBSYSTEM=="net", KERNEL=="wlan1", RUN+="/sbin/iwconfig wlan1 power off"
+  ```
 
 * cp reboot service files with `sudo cp scripts/daily-* /etc/systemd/system/`
   ```
