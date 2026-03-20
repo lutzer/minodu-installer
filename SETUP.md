@@ -35,28 +35,7 @@
 
 ### Install drivers (not necessary on newer raspbian versions)
 
-* `git clone https://github.com/RaspAP/raspap-tools.git`
-* `chmod 755 install_wlan_drivers.sh`
-* `./install_wlan_drivers.sh`
-* to check if evertyhing is installed correctly:
-  ```
-  # Check if WLAN interface exists
-  ip link show
-
-  # Or specifically look for wireless interfaces
-  iwconfig
-
-  # Check loaded drivers/modules
-  lsmod | grep -i 8188  # for Realtek (common USB adapters)
-  lsmod | grep -i brcm  # for Broadcom (built-in Pi WiFi)
-
-  # Check dmesg for driver errors
-  dmesg | grep -i wlan
-  dmesg | grep -i firmware
-
-  # Check if firmware loaded successfully
-  sudo rfkill list
-  ```
+refer to [WLAN_DRIVER_SETUP.md](WLAN_DRIVER_SETUP.md)
 
 ### Installation
 
@@ -88,15 +67,13 @@
   ctrl_interface=/var/run/hostapd
   ctrl_interface_group=0
   auth_algs=1
-  wpa_key_mgmt=WPA-PSK
   beacon_int=100
-  ssid=Minodu
+  ssid=Minodu3
   channel=1
   hw_mode=g
   ieee80211n=1
   interface=wlan1
-  wpa=none
-  wpa_pairwise=CCMP
+  wpa=0
   country_code=DE
   ignore_broadcast_ssid=0
   ap_max_inactivity=600
@@ -126,24 +103,6 @@
 * reboot with `sudo reboot`
 
 * login into the webinterface via *minodupi.local:81*
-
-* check if wlan1 interface is startd with `iw dev`
-  * if wlan1 isnt starting run `sudo rfkill unblock all`
-
-* disable usb power maganement by adding at the end to `sudo nano /boot/firmware/cmdline.txt`
-  ```
-  #disable usb power suspsend
-  usbcore.autosuspend=-1
-  ```
-* disable wlan power managment with `sudo nano /etc/udev/rules.d/70-rtl88x2bu-pm.rules`
-  ```
-  ACTION=="add", SUBSYSTEM=="net", KERNEL=="wlan1", RUN+="/sbin/iwconfig wlan1 power off"
-  ```
-
-* cp reboot service files with `sudo cp scripts/daily-* /etc/systemd/system/`
-  ```
-* enable reboot timer
- `sudo systemctl daemon-reload && sudo systemctl enable daily-reboot.timer && sudo systemctl start daily-reboot.timer`
 
 ## Setup captive portal
 
